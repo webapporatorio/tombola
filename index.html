@@ -21,7 +21,8 @@
         const annuncioRef = ref(db, 'annuncioAttivo');
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const isAdmin = !isMobile;
+        // Di base isAdmin è FALSO per tutti
+        let isAdmin = false; 
 
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -30,11 +31,23 @@
             renderTabellone(isTV);
             ascoltaCambiamenti(isTV);
 
-            if (isAdmin && !isTV) {
-                document.getElementById('admin-controls').classList.remove('hidden');
-            }
             if (isTV) {
                 document.getElementById('grid-container').classList.add('scale-110', 'mt-10');
+            }
+        };
+
+        // FUNZIONE SEGRETA PER SBLOCCARE I COMANDI
+        window.sbloccaAdmin = () => {
+            const pass = prompt("Inserisci il codice operatore per gestire il gioco:");
+            if (pass === "or@torio") {
+                isAdmin = true;
+                document.getElementById('admin-controls').classList.remove('hidden');
+                // Rigenera il tabellone per rendere i numeri cliccabili
+                const urlParams = new URLSearchParams(window.location.search);
+                renderTabellone(urlParams.get('view') === 'tv');
+                alert("Modalità Operatore Attivata!");
+            } else if (pass !== null) {
+                alert("Codice errato!");
             }
         };
 
@@ -46,6 +59,8 @@
                 node.id = `num-${i}`;
                 node.className = "border h-12 flex items-center justify-center font-bold text-lg bg-white text-slate-900 rounded shadow-sm transition-all";
                 node.innerText = i;
+                
+                // I numeri sono cliccabili SOLO se isAdmin è stato sbloccato con password
                 if (isAdmin && !isTV) {
                     node.classList.add('cursor-pointer', 'hover:bg-yellow-100', 'active:scale-95');
                     node.onclick = () => toggleNumero(i);
@@ -69,7 +84,6 @@
                 set(tabelloneRef, {});
                 set(ultimoRef, { valore: null, ts: 0 });
                 set(annuncioRef, { testo: null, ts: 0 });
-                // Reset premi a 0 o al valore che desideri
                 set(premiRef, { cinquine: 1, tombole: 1 });
             }
         };
@@ -171,40 +185,14 @@
 
     <div class="max-w-4xl mx-auto p-4">
         <header class="text-center mb-6">
-    <h1 class="text-4xl font-black text-yellow-500 uppercase italic tracking-tighter drop-shadow-lg">
-        TOMBOLA
-    </h1>
-    <p class="text-sm uppercase tracking-[0.3em] text-slate-400 font-light mt-1">
-        Oratorio in Festa 2026
-    </p>
-    
-    </header>
-            
-            <div id="admin-controls" class="hidden mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700">
-                <p class="text-green-400 font-mono text-xs mb-3 italic uppercase">Pannello Operatore</p>
-                <button onclick="resetPartita()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-8 rounded-lg shadow-lg transition-all active:bg-red-800">
-                    🔄 RESETTA TABELLONE
-                </button>
-                
-                <div class="mt-4 grid grid-cols-2 gap-4 border-t border-slate-700 pt-4 text-left">
-                    <div>
-                        <label class="text-xs text-slate-400">N. Cinquine disponibili:</label>
-                        <input type="number" id="input-cinquine" value="1" class="w-full bg-slate-700 p-1 rounded text-white" onchange="updatePremi()">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400">N. Tombole disponibili:</label>
-                        <input type="number" id="input-tombole" value="1" class="w-full bg-slate-700 p-1 rounded text-white" onchange="updatePremi()">
-                    </div>
-                </div>
+            <h1 onclick="sbloccaAdmin()" class="cursor-pointer select-none text-4xl font-black text-yellow-500 uppercase italic tracking-tighter drop-shadow-lg active:scale-95 transition-transform">
+                TOMBOLA
+            </h1>
+            <p class="text-sm uppercase tracking-[0.3em] text-slate-400 font-light mt-1">
+                Oratorio in Festa 2026
+            </p>
 
-                <div class="flex flex-wrap gap-2 mt-4 justify-center">
-                    <button onclick="annunciaPremio('CINQUINA')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold text-sm">📣 CINQUINA!</button>
-                    <button onclick="annunciaPremio('TOMBOLA')" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-bold text-sm">🏆 TOMBOLA!</button>
-                    <button onclick="annunciaPremio('FINE')" class="bg-slate-500 hover:bg-slate-600 px-4 py-2 rounded font-bold text-sm">⛔ FINE GIOCO</button>
-                </div>
-            </div>
-
-            <div class="mt-4 flex justify-around bg-slate-800 p-2 rounded-lg border border-yellow-500/30">
+            <div class="mt-4 flex justify-around bg-slate-800 p-2 rounded-lg border border-yellow-500/30 shadow-inner">
                 <div class="text-center">
                     <p class="text-[10px] uppercase text-slate-400">Cinquine rimaste</p>
                     <p id="display-cinquine" class="text-2xl font-black text-blue-400">0</p>
@@ -212,6 +200,30 @@
                 <div class="text-center">
                     <p class="text-[10px] uppercase text-slate-400">Tombole rimaste</p>
                     <p id="display-tombole" class="text-2xl font-black text-green-400">0</p>
+                </div>
+            </div>
+
+            <div id="admin-controls" class="hidden mt-6 p-4 bg-slate-800 rounded-xl border-2 border-green-500/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+                <p class="text-green-400 font-mono text-xs mb-3 italic uppercase font-bold">Pannello Operatore Attivo</p>
+                <button onclick="resetPartita()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-8 rounded-lg shadow-lg transition-all active:bg-red-800 w-full mb-4">
+                    🔄 RESETTA TUTTO
+                </button>
+                
+                <div class="grid grid-cols-2 gap-4 border-t border-slate-700 pt-4 text-left">
+                    <div>
+                        <label class="text-xs text-slate-400">Cinquine iniziali:</label>
+                        <input type="number" id="input-cinquine" value="1" class="w-full bg-slate-700 p-2 rounded text-white border border-slate-600 focus:border-blue-500 outline-none" onchange="updatePremi()">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">Tombole iniziali:</label>
+                        <input type="number" id="input-tombole" value="1" class="w-full bg-slate-700 p-2 rounded text-white border border-slate-600 focus:border-green-500 outline-none" onchange="updatePremi()">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mt-4 justify-center">
+                    <button onclick="annunciaPremio('CINQUINA')" class="bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-lg font-bold text-sm shadow-md flex-1">📣 CINQUINA!</button>
+                    <button onclick="annunciaPremio('TOMBOLA')" class="bg-green-600 hover:bg-green-700 px-4 py-3 rounded-lg font-bold text-sm shadow-md flex-1">🏆 TOMBOLA!</button>
+                    <button onclick="annunciaPremio('FINE')" class="bg-slate-600 hover:bg-slate-500 px-4 py-3 rounded-lg font-bold text-sm shadow-md w-full mt-2">⛔ FINE GIOCO</button>
                 </div>
             </div>
         </header>
